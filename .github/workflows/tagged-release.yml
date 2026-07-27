@@ -118,7 +118,8 @@ jobs:
           set -euo pipefail
           rm -rf "release-assets"
           mkdir -p "release-assets"
-          safe_tag="$(printf '%s' "${RELEASE_TAG}" | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+          safe_tag="$(printf '%s' "${RELEASE_TAG}" | tr -cs '[:alnum:]._-' '-')"
+          printf 'SAFE_RELEASE_TAG=%s\n' "${safe_tag}" >> "${GITHUB_ENV}"
 
           mapfile -d '' app_apks < <(find "app/build/outputs/apk/release" -type f -name '*.apk' -print0 | sort -z)
           if (( ${#app_apks[@]} == 0 )); then
@@ -128,7 +129,7 @@ jobs:
           for index in "${!app_apks[@]}"; do
             suffix=""
             if (( ${#app_apks[@]} > 1 )); then
-              stem="$(basename "${app_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+              stem="$(basename "${app_apks[$index]}" .apk | tr -cs '[:alnum:]._-' '-')"
               suffix="-${stem}"
             fi
             destination="release-assets/fcitx5-android-${safe_tag}${suffix}.apk"
@@ -146,7 +147,7 @@ jobs:
             for index in "${!plugin_apks[@]}"; do
               suffix=""
               if (( ${#plugin_apks[@]} > 1 )); then
-                stem="$(basename "${plugin_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+                stem="$(basename "${plugin_apks[$index]}" .apk | tr -cs '[:alnum:]._-' '-')"
                 suffix="-${stem}"
               fi
               destination="release-assets/fcitx5-android-${plugin}-${safe_tag}${suffix}.apk"
@@ -166,7 +167,7 @@ jobs:
       - name: Upload APK build artifact
         uses: actions/upload-artifact@v7
         with:
-          name: release-apks-${{ env.RELEASE_TAG }}
+          name: release-apks-${{ env.SAFE_RELEASE_TAG }}
           path: release-assets/*.apk
           if-no-files-found: error
 
