@@ -45,7 +45,17 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private val bar: KawaiiBarComponent by manager.must()
     private val returnKeyDrawable: ReturnKeyDrawableComponent by manager.must()
 
-    companion object : EssentialWindow.Key
+    companion object : EssentialWindow.Key {
+        internal fun selectKeyboard(inputClass: Int, ime: InputMethodEntry): String =
+            when (inputClass) {
+                InputType.TYPE_CLASS_NUMBER, InputType.TYPE_CLASS_PHONE -> NumberKeyboard.Name
+                else -> if (ChewingKeyboard.isChewing(ime)) {
+                    ChewingKeyboard.Name
+                } else {
+                    TextKeyboard.Name
+                }
+            }
+    }
 
     override val key: EssentialWindow.Key
         get() = KeyboardWindow
@@ -68,10 +78,12 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private val keyboards: HashMap<String, BaseKeyboard> by lazy {
         hashMapOf(
             TextKeyboard.Name to TextKeyboard(context, theme),
+            ChewingKeyboard.Name to ChewingKeyboard(context, theme),
             NumberKeyboard.Name to NumberKeyboard(context, theme)
         )
     }
     private var currentKeyboardName = ""
+    private var inputClass = InputType.TYPE_CLASS_TEXT
     private var lastSymbolType: String by AppPrefs.getInstance().internal.lastSymbolLayout
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
@@ -139,16 +151,18 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
-        val targetLayout = when (info.inputType and InputType.TYPE_MASK_CLASS) {
-            InputType.TYPE_CLASS_NUMBER -> NumberKeyboard.Name
-            InputType.TYPE_CLASS_PHONE -> NumberKeyboard.Name
-            else -> TextKeyboard.Name
-        }
+        inputClass = info.inputType and InputType.TYPE_MASK_CLASS
+        val targetLayout = selectKeyboard(inputClass, fcitx.runImmediately { inputMethodEntryCached })
         switchLayout(targetLayout, remember = false)
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {
-        currentKeyboard?.onInputMethodUpdate(ime)
+        val targetLayout = selectKeyboard(inputClass, ime)
+        if (targetLayout != currentKeyboardName) {
+            switchLayout(targetLayout, remember = false)
+        } else {
+            currentKeyboard?.onInputMethodUpdate(ime)
+        }
     }
 
     override fun onPunctuationUpdate(mapping: Map<String, String>) {
