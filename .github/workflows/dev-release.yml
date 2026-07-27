@@ -1,0 +1,172 @@
+name: Development Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: development-release
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release:
+    if: ${{ github.ref == 'refs/heads/master' && (github.event_name == 'workflow_dispatch' || github.event_name == 'push') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify signing secrets
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${SIGN_KEY_BASE64:-}" ]] || missing+=(SIGN_KEY_BASE64)
+          [[ -n "${SIGN_KEY_PWD:-}" ]] || missing+=(SIGN_KEY_PWD)
+          [[ -n "${SIGN_KEY_ALIAS:-}" ]] || missing+=(SIGN_KEY_ALIAS)
+          if (( ${#missing[@]} )); then
+            printf 'Error: required signing secret is missing: %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+
+      - name: Install Linux dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes extra-cmake-modules gettext ninja-build
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          sdkmanager --install \
+            "platforms;android-36" \
+            "build-tools;36.1.0" \
+            "ndk;28.0.13004108" \
+            "cmake;3.31.6"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build signed release APKs
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease
+          ./gradlew :assembleReleasePlugins
+
+      - name: Collect release APKs
+        id: assets
+        run: |
+          set -euo pipefail
+          rm -rf "release-assets"
+          mkdir -p "release-assets"
+          short_sha="$(git rev-parse --short=7 HEAD)"
+
+          mapfile -d '' app_apks < <(find "app/build/outputs/apk/release" -type f -name '*.apk' -print0 | sort -z)
+          if (( ${#app_apks[@]} == 0 )); then
+            echo "Error: no app release APK was produced under app/build/outputs/apk/release." >&2
+            exit 1
+          fi
+          for index in "${!app_apks[@]}"; do
+            suffix=""
+            if (( ${#app_apks[@]} > 1 )); then
+              stem="$(basename "${app_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+              suffix="-${stem}"
+            fi
+            destination="release-assets/fcitx5-android-dev-${short_sha}${suffix}.apk"
+            if [[ -e "${destination}" ]]; then
+              echo "Error: duplicate release asset name: ${destination}" >&2
+              exit 1
+            fi
+            cp -- "${app_apks[$index]}" "${destination}"
+          done
+
+          plugin_count=0
+          while IFS= read -r -d '' plugin_dir; do
+            plugin="$(basename "${plugin_dir}")"
+            mapfile -d '' plugin_apks < <(find "${plugin_dir}/build/outputs/apk/release" -type f -name '*.apk' -print0 2>/dev/null | sort -z)
+            for index in "${!plugin_apks[@]}"; do
+              suffix=""
+              if (( ${#plugin_apks[@]} > 1 )); then
+                stem="$(basename "${plugin_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+                suffix="-${stem}"
+              fi
+              destination="release-assets/fcitx5-android-${plugin}-dev-${short_sha}${suffix}.apk"
+              if [[ -e "${destination}" ]]; then
+                echo "Error: duplicate release asset name: ${destination}" >&2
+                exit 1
+              fi
+              cp -- "${plugin_apks[$index]}" "${destination}"
+              ((plugin_count += 1))
+            done
+          done < <(find "plugin" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+          if (( plugin_count == 0 )); then
+            echo "Error: no plugin release APK was produced under plugin/*/build/outputs/apk/release." >&2
+            exit 1
+          fi
+          printf 'short_sha=%s\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
+
+      - name: Upload APK build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: development-apks-${{ steps.assets.outputs.short_sha }}
+          path: release-assets/*.apk
+          if-no-files-found: error
+
+      - name: Update development tag and release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag="dev-latest"
+          git tag --force "${tag}" "${GITHUB_SHA}"
+          git push --force origin "refs/tags/${tag}"
+
+          commit_message="$(git log -1 --pretty=%B "${GITHUB_SHA}")"
+          build_time="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          notes_file="$(mktemp)"
+          trap 'rm -f "${notes_file}"' EXIT
+          {
+            printf 'Commit SHA: `%s`\n\n' "${GITHUB_SHA}"
+            printf 'Commit message:\n\n```text\n%s\n```\n\n' "${commit_message}"
+            printf 'Build time: `%s`\n\n' "${build_time}"
+            printf 'This is an automatically generated development build for testing and is not guaranteed to be stable.\n'
+          } > "${notes_file}"
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release edit "${tag}" --title "Development Build" --notes-file "${notes_file}" --prerelease --latest=false
+            while IFS= read -r asset; do
+              [[ -z "${asset}" ]] || gh release delete-asset "${tag}" "${asset}" --yes
+            done < <(gh release view "${tag}" --json assets --jq '.assets[].name')
+          else
+            gh release create "${tag}" --verify-tag --title "Development Build" --notes-file "${notes_file}" --prerelease
+          fi
+          gh release upload "${tag}" release-assets/*.apk --clobber
