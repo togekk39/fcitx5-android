@@ -104,6 +104,7 @@ jobs:
 
       - name: Build signed release APKs
         env:
+          BUILD_VERSION_NAME: ${{ env.RELEASE_TAG }}
           SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
           SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
           SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
