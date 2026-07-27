@@ -1,0 +1,186 @@
+name: Tagged Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v* tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tagged-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release:
+    if: ${{ (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    steps:
+      - name: Validate release tag
+        run: |
+          set -euo pipefail
+          if [[ ! "${RELEASE_TAG}" =~ ^v.+ ]]; then
+            echo "Error: tagged releases require a tag beginning with 'v'." >&2
+            exit 1
+          fi
+
+      - name: Checkout tagged revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify tag and release do not already exist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}" || {
+            echo "Error: tag '${RELEASE_TAG}' does not exist in the repository." >&2
+            exit 1
+          }
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Error: release '${RELEASE_TAG}' already exists; refusing to overwrite a formal release." >&2
+            exit 1
+          fi
+
+      - name: Verify signing secrets
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [[ -n "${SIGN_KEY_BASE64:-}" ]] || missing+=(SIGN_KEY_BASE64)
+          [[ -n "${SIGN_KEY_PWD:-}" ]] || missing+=(SIGN_KEY_PWD)
+          [[ -n "${SIGN_KEY_ALIAS:-}" ]] || missing+=(SIGN_KEY_ALIAS)
+          if (( ${#missing[@]} )); then
+            printf 'Error: required signing secret is missing: %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+
+      - name: Install Linux dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes extra-cmake-modules gettext ninja-build
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          sdkmanager --install \
+            "platforms;android-36" \
+            "build-tools;36.1.0" \
+            "ndk;28.0.13004108" \
+            "cmake;3.31.6"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build signed release APKs
+        env:
+          SIGN_KEY_BASE64: ${{ secrets.SIGN_KEY_BASE64 }}
+          SIGN_KEY_PWD: ${{ secrets.SIGN_KEY_PWD }}
+          SIGN_KEY_ALIAS: ${{ secrets.SIGN_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          ./gradlew :app:assembleRelease
+          ./gradlew :assembleReleasePlugins
+
+      - name: Collect release APKs
+        run: |
+          set -euo pipefail
+          rm -rf "release-assets"
+          mkdir -p "release-assets"
+          safe_tag="$(printf '%s' "${RELEASE_TAG}" | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+
+          mapfile -d '' app_apks < <(find "app/build/outputs/apk/release" -type f -name '*.apk' -print0 | sort -z)
+          if (( ${#app_apks[@]} == 0 )); then
+            echo "Error: no app release APK was produced under app/build/outputs/apk/release." >&2
+            exit 1
+          fi
+          for index in "${!app_apks[@]}"; do
+            suffix=""
+            if (( ${#app_apks[@]} > 1 )); then
+              stem="$(basename "${app_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+              suffix="-${stem}"
+            fi
+            destination="release-assets/fcitx5-android-${safe_tag}${suffix}.apk"
+            if [[ -e "${destination}" ]]; then
+              echo "Error: duplicate release asset name: ${destination}" >&2
+              exit 1
+            fi
+            cp -- "${app_apks[$index]}" "${destination}"
+          done
+
+          plugin_count=0
+          while IFS= read -r -d '' plugin_dir; do
+            plugin="$(basename "${plugin_dir}")"
+            mapfile -d '' plugin_apks < <(find "${plugin_dir}/build/outputs/apk/release" -type f -name '*.apk' -print0 2>/dev/null | sort -z)
+            for index in "${!plugin_apks[@]}"; do
+              suffix=""
+              if (( ${#plugin_apks[@]} > 1 )); then
+                stem="$(basename "${plugin_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+                suffix="-${stem}"
+              fi
+              destination="release-assets/fcitx5-android-${plugin}-${safe_tag}${suffix}.apk"
+              if [[ -e "${destination}" ]]; then
+                echo "Error: duplicate release asset name: ${destination}" >&2
+                exit 1
+              fi
+              cp -- "${plugin_apks[$index]}" "${destination}"
+              ((plugin_count += 1))
+            done
+          done < <(find "plugin" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z)
+          if (( plugin_count == 0 )); then
+            echo "Error: no plugin release APK was produced under plugin/*/build/outputs/apk/release." >&2
+            exit 1
+          fi
+
+      - name: Upload APK build artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apks-${{ env.RELEASE_TAG }}
+          path: release-assets/*.apk
+          if-no-files-found: error
+
+      - name: Create formal GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if gh release view "${RELEASE_TAG}" >/dev/null 2>&1; then
+            echo "Error: release '${RELEASE_TAG}' was created while this job was running; refusing to overwrite it." >&2
+            exit 1
+          fi
+          gh release create "${RELEASE_TAG}" release-assets/*.apk \
+            --verify-tag \
+            --title "${RELEASE_TAG}" \
+            --generate-notes \
+            --latest
