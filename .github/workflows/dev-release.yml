@@ -97,7 +97,7 @@ jobs:
           for index in "${!app_apks[@]}"; do
             suffix=""
             if (( ${#app_apks[@]} > 1 )); then
-              stem="$(basename "${app_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+              stem="$(basename "${app_apks[$index]}" .apk | tr -cs '[:alnum:]._ -' '-' | tr ' ' '-')"
               suffix="-${stem}"
             fi
             destination="release-assets/fcitx5-android-dev-${short_sha}${suffix}.apk"
@@ -115,7 +115,7 @@ jobs:
             for index in "${!plugin_apks[@]}"; do
               suffix=""
               if (( ${#plugin_apks[@]} > 1 )); then
-                stem="$(basename "${plugin_apks[$index]}" .apk | tr -cs '[:alnum:]._- ' '-' | tr ' ' '-')"
+                stem="$(basename "${plugin_apks[$index]}" .apk | tr -cs '[:alnum:]._ -' '-' | tr ' ' '-')"
                 suffix="-${stem}"
               fi
               destination="release-assets/fcitx5-android-${plugin}-dev-${short_sha}${suffix}.apk"
