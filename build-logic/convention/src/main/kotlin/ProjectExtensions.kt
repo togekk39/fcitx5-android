@@ -82,13 +82,15 @@ val Project.signKey: File?
             buildDir.mkdirs()
             val file = File.createTempFile("sign-", ".ks", buildDir)
             try {
-                file.writeBytes(Base64.decode(it))
+                // `base64` wraps output by default on many systems. Accept those line breaks so a
+                // keystore copied directly into SIGN_KEY_BASE64 does not silently disable signing.
+                file.writeBytes(Base64.Mime.decode(it))
                 file.deleteOnExit()
                 signKeyTempFile = file
                 return file
             } catch (e: Exception) {
-                println(e.localizedMessage ?: e.stackTraceToString())
                 file.delete()
+                throw IllegalArgumentException("Failed to decode SIGN_KEY_BASE64", e)
             }
         }
         return null

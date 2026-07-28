@@ -133,6 +133,27 @@ jobs:
           fi
           printf 'short_sha=%s\n' "${short_sha}" >> "${GITHUB_OUTPUT}"
 
+      - name: Verify development APK signatures
+        run: |
+          set -euo pipefail
+          apksigner="${ANDROID_HOME}/build-tools/36.1.0/apksigner"
+          if [[ ! -x "${apksigner}" ]]; then
+            echo "Error: apksigner is unavailable at ${apksigner}." >&2
+            exit 1
+          fi
+
+          mapfile -d '' release_apks < <(find "release-assets" -maxdepth 1 -type f -name '*.apk' -print0 | sort -z)
+          if (( ${#release_apks[@]} == 0 )); then
+            echo "Error: no development APKs are available for signature verification." >&2
+            exit 1
+          fi
+          for apk in "${release_apks[@]}"; do
+            if ! "${apksigner}" verify --verbose --print-certs "${apk}"; then
+              echo "Error: APK is not signed with a verifiable certificate: ${apk}" >&2
+              exit 1
+            fi
+          done
+
       - name: Upload APK build artifact
         uses: actions/upload-artifact@v7
         with:
