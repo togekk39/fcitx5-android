@@ -6,6 +6,7 @@ package org.fcitx.fcitx5.android.input.keyboard
 
 import android.text.InputType
 import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -56,6 +57,58 @@ class ChewingKeyboardTest {
         assertEquals(
             TextKeyboard.Name,
             KeyboardWindow.selectKeyboard(InputType.TYPE_CLASS_TEXT, ime("keyboard-us"))
+        )
+    }
+
+    @Test
+    fun toneKeysAreExactlyTheDaChenSyllableFinalizers() {
+        assertEquals(setOf("3", "4", "6", "7"), ChewingKeyboard.ToneKeys)
+        assertTrue(ChewingKeyboard.ToneKeys.all { tone ->
+            ChewingKeyboard.DaChenMapping.flatten().any { it.second == tone }
+        })
+    }
+
+    @Test
+    fun punctuationCommitsChineseCharactersWithoutDaChenAsciiEvents() {
+        listOf("，", "。").forEach { punctuation ->
+            val key = ChewingKeyboard.punctuationKey(punctuation)
+            assertEquals(punctuation, (key.appearance as KeyDef.Appearance.Text).displayText)
+            assertEquals(
+                setOf(KeyDef.Behavior.Press(KeyAction.CommitAction(punctuation))),
+                key.behaviors
+            )
+        }
+        assertTrue(ChewingKeyboard.Layout.flatten().any {
+            it is LayoutSwitchKey && it.to == PickerWindow.Key.Symbol.name
+        })
+    }
+
+    @Test
+    fun abcNavigationReturnsToActiveAlphabeticKeyboard() {
+        val chewing = ime("chewing", "chewing")
+        assertEquals(
+            ChewingKeyboard.Name,
+            KeyboardWindow.resolveTextLayout(
+                TextKeyboard.Name, InputType.TYPE_CLASS_TEXT, chewing
+            )
+        )
+        assertEquals(
+            TextKeyboard.Name,
+            KeyboardWindow.resolveTextLayout(
+                TextKeyboard.Name, InputType.TYPE_CLASS_TEXT, ime("keyboard-us")
+            )
+        )
+        assertEquals(
+            NumberKeyboard.Name,
+            KeyboardWindow.resolveTextLayout(
+                TextKeyboard.Name, InputType.TYPE_CLASS_PHONE, chewing
+            )
+        )
+        assertEquals(
+            PickerWindow.Key.Symbol.name,
+            KeyboardWindow.resolveTextLayout(
+                PickerWindow.Key.Symbol.name, InputType.TYPE_CLASS_TEXT, chewing
+            )
         )
     }
 }
