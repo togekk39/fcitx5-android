@@ -58,6 +58,9 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
         internal fun resolveTextLayout(target: String, inputClass: Int, ime: InputMethodEntry) =
             if (target == TextKeyboard.Name) selectKeyboard(inputClass, ime) else target
+
+        internal fun shouldRememberSymbolLayout(target: String) =
+            target != TextKeyboard.Name && target != ChewingKeyboard.Name
     }
 
     override val key: EssentialWindow.Key
@@ -142,7 +145,7 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         )
         ContextCompat.getMainExecutor(service).execute {
             if (keyboards.containsKey(target)) {
-                if (remember && target != TextKeyboard.Name) {
+                if (remember && shouldRememberSymbolLayout(target)) {
                     lastSymbolType = target
                 }
                 if (target == currentKeyboardName) return@execute

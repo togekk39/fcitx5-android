@@ -111,4 +111,14 @@ class ChewingKeyboardTest {
             )
         )
     }
+
+    @Test
+    fun alphabeticKeyboardsAreNotRememberedAsSymbolLayouts() {
+        assertFalse(KeyboardWindow.shouldRememberSymbolLayout(TextKeyboard.Name))
+        assertFalse(KeyboardWindow.shouldRememberSymbolLayout(ChewingKeyboard.Name))
+        assertTrue(KeyboardWindow.shouldRememberSymbolLayout(NumberKeyboard.Name))
+        assertTrue(
+            KeyboardWindow.shouldRememberSymbolLayout(PickerWindow.Key.Symbol.name)
+        )
+    }
 }
