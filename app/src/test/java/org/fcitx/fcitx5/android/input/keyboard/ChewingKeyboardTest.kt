@@ -5,7 +5,10 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import android.text.InputType
+import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fcitx.fcitx5.android.core.KeySym
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -56,6 +59,84 @@ class ChewingKeyboardTest {
         assertEquals(
             TextKeyboard.Name,
             KeyboardWindow.selectKeyboard(InputType.TYPE_CLASS_TEXT, ime("keyboard-us"))
+        )
+    }
+
+    @Test
+    fun candidateKeyExplicitlyEntersChoiceMode() {
+        val key = ChewingKeyboard.candidateKey()
+        assertEquals("選", (key.appearance as KeyDef.Appearance.Text).displayText)
+        val action = (key.behaviors.single() as KeyDef.Behavior.Press).action
+        assertEquals(
+            KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Down)),
+            action
+        )
+        assertTrue(ChewingKeyboard.Layout.flatten().any {
+            (it.appearance as? KeyDef.Appearance.Text)?.displayText == "選" &&
+                (it.behaviors.single() as KeyDef.Behavior.Press).action == action
+        })
+    }
+
+    @Test
+    fun punctuationCommitsChineseCharactersWithoutDaChenAsciiEvents() {
+        listOf("，", "。").forEach { punctuation ->
+            val key = ChewingKeyboard.punctuationKey(punctuation)
+            assertEquals(punctuation, (key.appearance as KeyDef.Appearance.Text).displayText)
+            assertEquals(
+                setOf(KeyDef.Behavior.Press(KeyAction.CommitAction(punctuation))),
+                key.behaviors
+            )
+        }
+        assertTrue(ChewingKeyboard.Layout.flatten().any {
+            it is LayoutSwitchKey && it.to == PickerWindow.Key.Symbol.name
+        })
+    }
+
+    @Test
+    fun bottomRowReservesEnoughWidthForSpaceBar() {
+        val bottomRow = ChewingKeyboard.Layout.last()
+        val fixedWidth = bottomRow.sumOf { it.appearance.percentWidth.toDouble() }
+
+        assertTrue(bottomRow.any { it is SpaceKey && it.appearance.percentWidth == 0f })
+        assertTrue("space bar has only ${1.0 - fixedWidth} of the row", fixedWidth <= 0.7)
+    }
+
+    @Test
+    fun abcNavigationReturnsToActiveAlphabeticKeyboard() {
+        val chewing = ime("chewing", "chewing")
+        assertEquals(
+            ChewingKeyboard.Name,
+            KeyboardWindow.resolveTextLayout(
+                TextKeyboard.Name, InputType.TYPE_CLASS_TEXT, chewing
+            )
+        )
+        assertEquals(
+            TextKeyboard.Name,
+            KeyboardWindow.resolveTextLayout(
+                TextKeyboard.Name, InputType.TYPE_CLASS_TEXT, ime("keyboard-us")
+            )
+        )
+        assertEquals(
+            NumberKeyboard.Name,
+            KeyboardWindow.resolveTextLayout(
+                TextKeyboard.Name, InputType.TYPE_CLASS_PHONE, chewing
+            )
+        )
+        assertEquals(
+            PickerWindow.Key.Symbol.name,
+            KeyboardWindow.resolveTextLayout(
+                PickerWindow.Key.Symbol.name, InputType.TYPE_CLASS_TEXT, chewing
+            )
+        )
+    }
+
+    @Test
+    fun alphabeticKeyboardsAreNotRememberedAsSymbolLayouts() {
+        assertFalse(KeyboardWindow.shouldRememberSymbolLayout(TextKeyboard.Name))
+        assertFalse(KeyboardWindow.shouldRememberSymbolLayout(ChewingKeyboard.Name))
+        assertTrue(KeyboardWindow.shouldRememberSymbolLayout(NumberKeyboard.Name))
+        assertTrue(
+            KeyboardWindow.shouldRememberSymbolLayout(PickerWindow.Key.Symbol.name)
         )
     }
 }

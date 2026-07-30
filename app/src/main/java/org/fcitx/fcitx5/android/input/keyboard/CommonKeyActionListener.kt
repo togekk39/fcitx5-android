@@ -71,6 +71,13 @@ class CommonKeyActionListener :
             if (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty()) {
                 // preedit not empty, maybe there are candidates to select ...
                 select(0)
+                // Selecting a Chewing candidate only replaces the current syllable;
+                // finish the composition as well so reset() cannot discard the phrase.
+                // Other Chinese IMEs must retain their composing range until the
+                // queued candidate commit is delivered.
+                if (ChewingKeyboard.isChewing(inputMethodEntryCached)) {
+                    service.finishComposing()
+                }
             }
         } else {
             // Other languages: commit preedit as-is

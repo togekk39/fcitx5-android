@@ -7,8 +7,11 @@ package org.fcitx.fcitx5.android.input.keyboard
 import android.annotation.SuppressLint
 import android.content.Context
 import org.fcitx.fcitx5.android.R
+import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.data.theme.Theme
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import splitties.views.imageResource
 
 /** The fixed Standard (DaChen) keyboard used by the Chewing input method. */
@@ -17,6 +20,11 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
     companion object {
         const val Name = "Chewing"
         const val InputMethodName = "chewing"
+
+        // Keep the utility keys compact so the flexible space key retains enough room for
+        // reliable taps and horizontal cursor swipes.
+        private const val BottomKeyWidth = 0.07f
+        private const val WideBottomKeyWidth = 0.12f
 
         val DaChenMapping: List<List<Pair<String, String>>> = listOf(
             listOf(
@@ -43,16 +51,53 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             arrayOf(KeyDef.Popup.Preview(label))
         )
 
+        internal fun punctuationKey(label: String) = KeyDef(
+            KeyDef.Appearance.Text(
+                label,
+                textSize = 23f,
+                percentWidth = BottomKeyWidth,
+                variant = KeyDef.Appearance.Variant.Alternative
+            ),
+            // Literal commit is intentional: comma, period, and slash are DaChen phonetic
+            // keys, so sending their ASCII key events here would enter ㄝ, ㄡ, or ㄥ.
+            setOf(KeyDef.Behavior.Press(KeyAction.CommitAction(label))),
+            arrayOf(KeyDef.Popup.Preview(label))
+        )
+
+        /** Opens candidates for the syllable at the Chewing preedit cursor. */
+        internal fun candidateKey() = KeyDef(
+            KeyDef.Appearance.Text(
+                "選",
+                textSize = 20f,
+                percentWidth = BottomKeyWidth,
+                variant = KeyDef.Appearance.Variant.Alternative
+            ),
+            setOf(
+                KeyDef.Behavior.Press(
+                    KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Down))
+                )
+            ),
+            arrayOf(KeyDef.Popup.Preview("選字"))
+        )
+
         val Layout: List<List<KeyDef>> = DaChenMapping.map { row ->
             val width = 1f / row.size
             row.map { (label, ascii) -> daChenKey(label, ascii, width) }
         } + listOf(
             listOf(
-                LayoutSwitchKey("?123", "", percentWidth = 0.15f),
-                LanguageKey(),
+                LayoutSwitchKey("?123", NumberKeyboard.Name, percentWidth = WideBottomKeyWidth),
+                punctuationKey("，"),
+                LanguageKey(percentWidth = BottomKeyWidth),
                 SpaceKey(),
-                BackspaceKey(),
-                ReturnKey()
+                punctuationKey("。"),
+                // Swipe the space bar to move between composed syllables, then use this
+                // explicit key to request candidates for the syllable at the cursor.
+                candidateKey(),
+                LayoutSwitchKey(
+                    "符", PickerWindow.Key.Symbol.name, percentWidth = BottomKeyWidth
+                ),
+                BackspaceKey(percentWidth = BottomKeyWidth),
+                ReturnKey(percentWidth = WideBottomKeyWidth)
             )
         )
 
@@ -62,7 +107,6 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
 
     private val space: TextKeyView by lazy { findViewById(R.id.button_space) }
     private val returnKey: ImageKeyView by lazy { findViewById(R.id.button_return) }
-
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
         space.mainText.text = ime.displayName
     }

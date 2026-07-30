@@ -55,6 +55,12 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
                     TextKeyboard.Name
                 }
             }
+
+        internal fun resolveTextLayout(target: String, inputClass: Int, ime: InputMethodEntry) =
+            if (target == TextKeyboard.Name) selectKeyboard(inputClass, ime) else target
+
+        internal fun shouldRememberSymbolLayout(target: String) =
+            target != TextKeyboard.Name && target != ChewingKeyboard.Name
     }
 
     override val key: EssentialWindow.Key
@@ -129,10 +135,17 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     }
 
     fun switchLayout(to: String, remember: Boolean = true) {
-        val target = to.ifEmpty { lastSymbolType }
+        val requested = to.ifEmpty { lastSymbolType }
+        // ABC keys in NumberKeyboard and PickerLayout mean "the active alphabetic layout",
+        // not specifically QWERTY. This also restores Chewing after either extended layout.
+        val target = resolveTextLayout(
+            requested,
+            inputClass,
+            fcitx.runImmediately { inputMethodEntryCached }
+        )
         ContextCompat.getMainExecutor(service).execute {
             if (keyboards.containsKey(target)) {
-                if (remember && target != TextKeyboard.Name) {
+                if (remember && shouldRememberSymbolLayout(target)) {
                     lastSymbolType = target
                 }
                 if (target == currentKeyboardName) return@execute
