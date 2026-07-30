@@ -44,6 +44,10 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             )
         )
 
+        internal val PhoneticKeys by lazy {
+            DaChenMapping.flatten().mapTo(mutableSetOf()) { it.second }
+        }
+
         private fun daChenKey(label: String, ascii: String, width: Float) = KeyDef(
             KeyDef.Appearance.Text(label, textSize = 22f, percentWidth = width),
             setOf(KeyDef.Behavior.Press(KeyAction.FcitxKeyAction(ascii))),
@@ -85,12 +89,28 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
 
     private val space: TextKeyView by lazy { findViewById(R.id.button_space) }
     private val returnKey: ImageKeyView by lazy { findViewById(R.id.button_return) }
+    private var openedChoicesAfterTone = false
 
     override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
+        val phoneticKey = source == KeyActionListener.Source.Keyboard &&
+            action is KeyAction.FcitxKeyAction && action.act in PhoneticKeys
+
+        if (openedChoicesAfterTone && phoneticKey) {
+            // Down puts libchewing in choice mode, where DaChen number keys select a
+            // candidate. Leave that mode before forwarding the next phonetic key so, for
+            // example, ㄅ ("1") starts a new syllable instead of choosing candidate 1.
+            super.onAction(
+                KeyAction.SymAction(
+                    KeySym(FcitxKeyMapping.FcitxKey_Escape),
+                    KeyStates.Virtual
+                ),
+                source
+            )
+            openedChoicesAfterTone = false
+        }
+
         super.onAction(action, source)
-        if (source == KeyActionListener.Source.Keyboard &&
-            action is KeyAction.FcitxKeyAction && action.act in ToneKeys
-        ) {
+        if (phoneticKey && (action as KeyAction.FcitxKeyAction).act in ToneKeys) {
             // libchewing does not publish its alternatives immediately after a tone. Down
             // enters candidate selection; that candidate-list update then follows the same
             // InputBroadcaster -> KawaiiBar -> HorizontalCandidate path as every other IME.
@@ -101,6 +121,7 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
                 ),
                 source
             )
+            openedChoicesAfterTone = true
         }
     }
 

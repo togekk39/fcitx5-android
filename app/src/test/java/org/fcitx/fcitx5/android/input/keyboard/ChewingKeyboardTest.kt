@@ -63,6 +63,10 @@ class ChewingKeyboardTest {
     @Test
     fun toneKeysAreExactlyTheDaChenSyllableFinalizers() {
         assertEquals(setOf("3", "4", "6", "7"), ChewingKeyboard.ToneKeys)
+        assertEquals(
+            ChewingKeyboard.DaChenMapping.flatten().map { it.second }.toSet(),
+            ChewingKeyboard.PhoneticKeys
+        )
         assertTrue(ChewingKeyboard.ToneKeys.all { tone ->
             ChewingKeyboard.DaChenMapping.flatten().any { it.second == tone }
         })
