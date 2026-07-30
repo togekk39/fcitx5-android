@@ -78,7 +78,7 @@ class ChewingKeyboardTest {
     }
 
     @Test
-    fun punctuationCommitsChineseCharactersWithoutDaChenAsciiEvents() {
+    fun punctuationCommitsChineseCharactersAndSymbolKeyIsAbsent() {
         listOf("，", "。").forEach { punctuation ->
             val key = ChewingKeyboard.punctuationKey(punctuation)
             assertEquals(punctuation, (key.appearance as KeyDef.Appearance.Text).displayText)
@@ -87,8 +87,8 @@ class ChewingKeyboardTest {
                 key.behaviors
             )
         }
-        assertTrue(ChewingKeyboard.Layout.flatten().any {
-            it is LayoutSwitchKey && it.to == PickerWindow.Key.Symbol.name
+        assertFalse(ChewingKeyboard.Layout.flatten().any {
+            (it.appearance as? KeyDef.Appearance.Text)?.displayText == "符"
         })
     }
 
