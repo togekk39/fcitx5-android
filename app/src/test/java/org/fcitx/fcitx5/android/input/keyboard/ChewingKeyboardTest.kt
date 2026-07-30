@@ -5,7 +5,9 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import android.text.InputType
+import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
+import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -61,14 +63,17 @@ class ChewingKeyboardTest {
     }
 
     @Test
-    fun toneKeysAreExactlyTheDaChenSyllableFinalizers() {
-        assertEquals(setOf("3", "4", "6", "7"), ChewingKeyboard.ToneKeys)
+    fun candidateKeyExplicitlyEntersChoiceMode() {
+        val key = ChewingKeyboard.candidateKey()
+        assertEquals("選", (key.appearance as KeyDef.Appearance.Text).displayText)
+        val action = (key.behaviors.single() as KeyDef.Behavior.Press).action
         assertEquals(
-            ChewingKeyboard.DaChenMapping.flatten().map { it.second }.toSet(),
-            ChewingKeyboard.PhoneticKeys
+            KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Down)),
+            action
         )
-        assertTrue(ChewingKeyboard.ToneKeys.all { tone ->
-            ChewingKeyboard.DaChenMapping.flatten().any { it.second == tone }
+        assertTrue(ChewingKeyboard.Layout.flatten().any {
+            (it.appearance as? KeyDef.Appearance.Text)?.displayText == "選" &&
+                (it.behaviors.single() as KeyDef.Behavior.Press).action == action
         })
     }
 

@@ -9,7 +9,6 @@ import android.content.Context
 import org.fcitx.fcitx5.android.R
 import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
-import org.fcitx.fcitx5.android.core.KeyStates
 import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.data.theme.Theme
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
@@ -21,9 +20,6 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
     companion object {
         const val Name = "Chewing"
         const val InputMethodName = "chewing"
-
-        /** DaChen tone keys complete a syllable, after which Chewing needs Down to open choices. */
-        internal val ToneKeys = setOf("3", "4", "6", "7")
 
         val DaChenMapping: List<List<Pair<String, String>>> = listOf(
             listOf(
@@ -44,10 +40,6 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             )
         )
 
-        internal val PhoneticKeys by lazy {
-            DaChenMapping.flatten().mapTo(mutableSetOf()) { it.second }
-        }
-
         private fun daChenKey(label: String, ascii: String, width: Float) = KeyDef(
             KeyDef.Appearance.Text(label, textSize = 22f, percentWidth = width),
             setOf(KeyDef.Behavior.Press(KeyAction.FcitxKeyAction(ascii))),
@@ -67,6 +59,22 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             arrayOf(KeyDef.Popup.Preview(label))
         )
 
+        /** Opens candidates for the syllable at the Chewing preedit cursor. */
+        internal fun candidateKey() = KeyDef(
+            KeyDef.Appearance.Text(
+                "選",
+                textSize = 20f,
+                percentWidth = 0.1f,
+                variant = KeyDef.Appearance.Variant.Alternative
+            ),
+            setOf(
+                KeyDef.Behavior.Press(
+                    KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Down))
+                )
+            ),
+            arrayOf(KeyDef.Popup.Preview("選字"))
+        )
+
         val Layout: List<List<KeyDef>> = DaChenMapping.map { row ->
             val width = 1f / row.size
             row.map { (label, ascii) -> daChenKey(label, ascii, width) }
@@ -77,6 +85,9 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
                 LanguageKey(),
                 SpaceKey(),
                 punctuationKey("。"),
+                // Swipe the space bar to move between composed syllables, then use this
+                // explicit key to request candidates for the syllable at the cursor.
+                candidateKey(),
                 LayoutSwitchKey("符", PickerWindow.Key.Symbol.name, percentWidth = 0.1f),
                 BackspaceKey(),
                 ReturnKey()
@@ -89,42 +100,6 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
 
     private val space: TextKeyView by lazy { findViewById(R.id.button_space) }
     private val returnKey: ImageKeyView by lazy { findViewById(R.id.button_return) }
-    private var openedChoicesAfterTone = false
-
-    override fun onAction(action: KeyAction, source: KeyActionListener.Source) {
-        val phoneticKey = source == KeyActionListener.Source.Keyboard &&
-            action is KeyAction.FcitxKeyAction && action.act in PhoneticKeys
-
-        if (openedChoicesAfterTone && phoneticKey) {
-            // Down puts libchewing in choice mode, where DaChen number keys select a
-            // candidate. Leave that mode before forwarding the next phonetic key so, for
-            // example, ㄅ ("1") starts a new syllable instead of choosing candidate 1.
-            super.onAction(
-                KeyAction.SymAction(
-                    KeySym(FcitxKeyMapping.FcitxKey_Escape),
-                    KeyStates.Virtual
-                ),
-                source
-            )
-            openedChoicesAfterTone = false
-        }
-
-        super.onAction(action, source)
-        if (phoneticKey && (action as KeyAction.FcitxKeyAction).act in ToneKeys) {
-            // libchewing does not publish its alternatives immediately after a tone. Down
-            // enters candidate selection; that candidate-list update then follows the same
-            // InputBroadcaster -> KawaiiBar -> HorizontalCandidate path as every other IME.
-            super.onAction(
-                KeyAction.SymAction(
-                    KeySym(FcitxKeyMapping.FcitxKey_Down),
-                    KeyStates.Virtual
-                ),
-                source
-            )
-            openedChoicesAfterTone = true
-        }
-    }
-
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
         space.mainText.text = ime.displayName
     }
