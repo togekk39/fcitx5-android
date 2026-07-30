@@ -7,11 +7,8 @@ package org.fcitx.fcitx5.android.input.keyboard
 import android.annotation.SuppressLint
 import android.content.Context
 import org.fcitx.fcitx5.android.R
-import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
-import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.data.theme.Theme
-import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import splitties.views.imageResource
 
 /** The fixed Standard (DaChen) keyboard used by the Chewing input method. */
@@ -64,22 +61,6 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             arrayOf(KeyDef.Popup.Preview(label))
         )
 
-        /** Opens candidates for the syllable at the Chewing preedit cursor. */
-        internal fun candidateKey() = KeyDef(
-            KeyDef.Appearance.Text(
-                "選",
-                textSize = 20f,
-                percentWidth = BottomKeyWidth,
-                variant = KeyDef.Appearance.Variant.Alternative
-            ),
-            setOf(
-                KeyDef.Behavior.Press(
-                    KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Down))
-                )
-            ),
-            arrayOf(KeyDef.Popup.Preview("選字"))
-        )
-
         val Layout: List<List<KeyDef>> = DaChenMapping.map { row ->
             val width = 1f / row.size
             row.map { (label, ascii) -> daChenKey(label, ascii, width) }
@@ -90,12 +71,6 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
                 LanguageKey(percentWidth = BottomKeyWidth),
                 SpaceKey(),
                 punctuationKey("。"),
-                // Swipe the space bar to move between composed syllables, then use this
-                // explicit key to request candidates for the syllable at the cursor.
-                candidateKey(),
-                LayoutSwitchKey(
-                    "符", PickerWindow.Key.Symbol.name, percentWidth = BottomKeyWidth
-                ),
                 BackspaceKey(percentWidth = BottomKeyWidth),
                 ReturnKey(percentWidth = WideBottomKeyWidth)
             )
