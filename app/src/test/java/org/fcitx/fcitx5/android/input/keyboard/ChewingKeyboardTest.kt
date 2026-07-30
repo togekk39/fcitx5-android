@@ -93,6 +93,15 @@ class ChewingKeyboardTest {
     }
 
     @Test
+    fun bottomRowReservesEnoughWidthForSpaceBar() {
+        val bottomRow = ChewingKeyboard.Layout.last()
+        val fixedWidth = bottomRow.sumOf { it.appearance.percentWidth.toDouble() }
+
+        assertTrue(bottomRow.any { it is SpaceKey && it.appearance.percentWidth == 0f })
+        assertTrue("space bar has only ${1.0 - fixedWidth} of the row", fixedWidth <= 0.7)
+    }
+
+    @Test
     fun abcNavigationReturnsToActiveAlphabeticKeyboard() {
         val chewing = ime("chewing", "chewing")
         assertEquals(

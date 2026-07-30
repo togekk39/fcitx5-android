@@ -21,6 +21,11 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
         const val Name = "Chewing"
         const val InputMethodName = "chewing"
 
+        // Keep the utility keys compact so the flexible space key retains enough room for
+        // reliable taps and horizontal cursor swipes.
+        private const val BottomKeyWidth = 0.07f
+        private const val WideBottomKeyWidth = 0.12f
+
         val DaChenMapping: List<List<Pair<String, String>>> = listOf(
             listOf(
                 "ㄅ" to "1", "ㄉ" to "2", "ˇ" to "3", "ˋ" to "4", "ㄓ" to "5",
@@ -50,7 +55,7 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             KeyDef.Appearance.Text(
                 label,
                 textSize = 23f,
-                percentWidth = 0.1f,
+                percentWidth = BottomKeyWidth,
                 variant = KeyDef.Appearance.Variant.Alternative
             ),
             // Literal commit is intentional: comma, period, and slash are DaChen phonetic
@@ -64,7 +69,7 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             KeyDef.Appearance.Text(
                 "選",
                 textSize = 20f,
-                percentWidth = 0.1f,
+                percentWidth = BottomKeyWidth,
                 variant = KeyDef.Appearance.Variant.Alternative
             ),
             setOf(
@@ -80,17 +85,19 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             row.map { (label, ascii) -> daChenKey(label, ascii, width) }
         } + listOf(
             listOf(
-                LayoutSwitchKey("?123", NumberKeyboard.Name, percentWidth = 0.15f),
+                LayoutSwitchKey("?123", NumberKeyboard.Name, percentWidth = WideBottomKeyWidth),
                 punctuationKey("，"),
-                LanguageKey(),
+                LanguageKey(percentWidth = BottomKeyWidth),
                 SpaceKey(),
                 punctuationKey("。"),
                 // Swipe the space bar to move between composed syllables, then use this
                 // explicit key to request candidates for the syllable at the cursor.
                 candidateKey(),
-                LayoutSwitchKey("符", PickerWindow.Key.Symbol.name, percentWidth = 0.1f),
-                BackspaceKey(),
-                ReturnKey()
+                LayoutSwitchKey(
+                    "符", PickerWindow.Key.Symbol.name, percentWidth = BottomKeyWidth
+                ),
+                BackspaceKey(percentWidth = BottomKeyWidth),
+                ReturnKey(percentWidth = WideBottomKeyWidth)
             )
         )
 
