@@ -70,7 +70,12 @@ class CommonKeyActionListener :
             // Chinese: select 1st candidate, except prediction candidates
             if (clientPreeditCached.isNotEmpty() || inputPanelCached.preedit.isNotEmpty()) {
                 // preedit not empty, maybe there are candidates to select ...
-                select(0)
+                // Some engines (notably Chewing before choice mode is entered) expose
+                // preedit without a candidate list. Preserve that composition when
+                // selection fails instead of letting the subsequent reset discard it.
+                if (!select(0)) {
+                    service.finishComposing()
+                }
             }
         } else {
             // Other languages: commit preedit as-is
