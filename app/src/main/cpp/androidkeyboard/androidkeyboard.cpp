@@ -82,6 +82,13 @@ static inline bool isWordLetter(const Key &key) {
     return latinLetters.count(Key::keySymToUTF8(key.sym()));
 }
 
+static inline bool isInWordPunctuation(const Key &key) {
+    static const KeyList hyphenAndApostrophe = {Key(FcitxKey_minus),
+                                                Key(FcitxKey_apostrophe)};
+    return key.checkKeyList(hyphenAndApostrophe) ||
+           Key::keySymToUTF8(key.sym()) == "’";
+}
+
 void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &event) {
     FCITX_UNUSED(entry);
 
@@ -113,7 +120,6 @@ void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &ev
 
     const bool validSym = isValidSym(key);
 
-    static const KeyList FCITX_HYPHEN_APOS = {Key(FcitxKey_minus), Key(FcitxKey_apostrophe)};
     // check for valid character
     if (key.isSimple() || validSym) {
         // prepend space before input next word
@@ -123,7 +129,7 @@ void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &ev
             inputContext->commitString(" ");
         }
         if (isWordLetter(key) || validSym ||
-            (!buffer.empty() && key.checkKeyList(FCITX_HYPHEN_APOS))) {
+            (!buffer.empty() && isInWordPunctuation(key))) {
             if (updateBuffer(inputContext, event)) {
                 return event.filterAndAccept();
             }
