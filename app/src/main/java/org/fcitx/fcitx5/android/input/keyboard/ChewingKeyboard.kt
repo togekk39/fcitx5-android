@@ -61,20 +61,23 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
             arrayOf(KeyDef.Popup.Preview(label))
         )
 
-        val Layout: List<List<KeyDef>> = DaChenMapping.map { row ->
-            val width = 1f / row.size
-            row.map { (label, ascii) -> daChenKey(label, ascii, width) }
-        } + listOf(
-            listOf(
-                LayoutSwitchKey("?123", NumberKeyboard.Name, percentWidth = WideBottomKeyWidth),
-                punctuationKey("，"),
-                LanguageKey(percentWidth = BottomKeyWidth),
-                SpaceKey(),
-                punctuationKey("。"),
-                BackspaceKey(percentWidth = BottomKeyWidth),
-                ReturnKey(percentWidth = WideBottomKeyWidth)
+        val Layout: List<List<KeyDef>> = buildList {
+            addAll(DaChenMapping.map { row ->
+                val width = 1f / row.size
+                row.map { (label, ascii) -> daChenKey(label, ascii, width) }
+            })
+            add(
+                listOf<KeyDef>(
+                    LayoutSwitchKey("?123", NumberKeyboard.Name, percentWidth = WideBottomKeyWidth),
+                    punctuationKey("，"),
+                    LanguageKey(percentWidth = BottomKeyWidth),
+                    SpaceKey(),
+                    punctuationKey("。"),
+                    BackspaceKey(percentWidth = BottomKeyWidth),
+                    ReturnKey(percentWidth = WideBottomKeyWidth)
+                )
             )
-        )
+        }
 
         fun isChewing(ime: InputMethodEntry): Boolean =
             ime.uniqueName == InputMethodName || ime.addon == InputMethodName
