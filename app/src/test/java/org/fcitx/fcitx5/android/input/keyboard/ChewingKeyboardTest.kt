@@ -5,9 +5,7 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import android.text.InputType
-import org.fcitx.fcitx5.android.core.FcitxKeyMapping
 import org.fcitx.fcitx5.android.core.InputMethodEntry
-import org.fcitx.fcitx5.android.core.KeySym
 import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -63,22 +61,7 @@ class ChewingKeyboardTest {
     }
 
     @Test
-    fun candidateKeyExplicitlyEntersChoiceMode() {
-        val key = ChewingKeyboard.candidateKey()
-        assertEquals("選", (key.appearance as KeyDef.Appearance.Text).displayText)
-        val action = (key.behaviors.single() as KeyDef.Behavior.Press).action
-        assertEquals(
-            KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_Down)),
-            action
-        )
-        assertTrue(ChewingKeyboard.Layout.flatten().any {
-            (it.appearance as? KeyDef.Appearance.Text)?.displayText == "選" &&
-                (it.behaviors.single() as KeyDef.Behavior.Press).action == action
-        })
-    }
-
-    @Test
-    fun punctuationCommitsChineseCharactersAndSymbolKeyIsAbsent() {
+    fun punctuationCommitsChineseCharactersAndRedundantKeysAreAbsent() {
         listOf("，", "。").forEach { punctuation ->
             val key = ChewingKeyboard.punctuationKey(punctuation)
             assertEquals(punctuation, (key.appearance as KeyDef.Appearance.Text).displayText)
@@ -88,7 +71,7 @@ class ChewingKeyboardTest {
             )
         }
         assertFalse(ChewingKeyboard.Layout.flatten().any {
-            (it.appearance as? KeyDef.Appearance.Text)?.displayText == "符"
+            (it.appearance as? KeyDef.Appearance.Text)?.displayText in setOf("選", "符")
         })
     }
 
