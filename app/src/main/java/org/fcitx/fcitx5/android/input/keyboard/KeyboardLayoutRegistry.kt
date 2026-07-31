@@ -157,7 +157,11 @@ object KeyboardLayoutRegistry {
         }.toMutableList()
         rows += listOf(
             LayoutSwitchKey("?123", spec.symbolLayoutName),
-            layoutKey(spec.punctuation.first, "", spec.popups[spec.punctuation.first]),
+            CommaKey(
+                percentWidth = 0.1f,
+                variant = Variant.Alternative,
+                displayText = spec.punctuation.first
+            ),
             LanguageKey(), SpaceKey(spec.spaceLabel, spec.popups[" "]),
             layoutKey(spec.punctuation.second, "", spec.popups[spec.punctuation.second]), ReturnKey()
         )

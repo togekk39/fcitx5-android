@@ -161,19 +161,21 @@ class QuickPhraseKey : KeyDef(
 class CommaKey(
     percentWidth: Float,
     variant: Variant,
+    displayText: String = ",",
+    output: String = displayText,
 ) : KeyDef(
     Appearance.ImageText(
-        displayText = ",",
+        displayText = displayText,
         textSize = 23f,
         percentWidth = percentWidth,
         variant = variant,
         src = R.drawable.ic_baseline_tag_faces_24
     ),
     setOf(
-        Behavior.Press(KeyAction.FcitxKeyAction(","))
+        Behavior.Press(KeyAction.FcitxKeyAction(output))
     ),
     arrayOf(
-        Popup.Preview(","),
+        Popup.Preview(displayText),
         Popup.Menu(
             arrayOf(
                 Popup.Menu.Item(

@@ -87,6 +87,21 @@ class KeyboardLayoutRegistryTest {
         assertEquals(0.15f, row.last().appearance.percentWidth, 0f)
     }
 
+    @Test
+    fun bottomRowKeepsCommaUtilityMenuForEveryLayout() {
+        listOf(
+            KeyboardLayoutRegistry.English,
+            KeyboardLayoutRegistry.Spanish,
+            KeyboardLayoutRegistry.Portuguese,
+            KeyboardLayoutRegistry.French,
+            KeyboardLayoutRegistry.Persian
+        ).forEach { layout ->
+            val comma = KeyboardLayoutRegistry.textLayout(layout).last()[1]
+            assertTrue(comma is CommaKey)
+            assertTrue(comma.popup.orEmpty().any { it is KeyDef.Popup.Menu })
+        }
+    }
+
     private fun assertContains(layout: KeyboardLayoutSpec, expected: String) {
         val available = buildString {
             append(layout.rows.flatten().joinToString("").lowercase())
