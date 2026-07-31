@@ -154,7 +154,11 @@ class TextKeyboard(
                             )
                         else action
                     }
-                    is KeyDef.Popup.Keyboard.Explicit -> action
+                    is KeyDef.Popup.Keyboard.Explicit -> action.copy(
+                        keyboard = KeyDef.Popup.Keyboard.Explicit(
+                            action.keyboard.items.map { transformPopupPreview(it) }.toTypedArray()
+                        )
+                    )
                 }
             }
             else -> action
