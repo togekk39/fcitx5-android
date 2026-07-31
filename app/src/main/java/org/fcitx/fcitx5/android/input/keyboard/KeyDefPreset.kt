@@ -43,18 +43,22 @@ class AlphabetKey(
     val character: String,
     val punctuation: String,
     variant: Variant = Variant.Normal,
+    percentWidth: Float = 0.1f,
     popup: Array<Popup>? = null
 ) : KeyDef(
     Appearance.AltText(
         displayText = character,
         altText = punctuation,
         textSize = 23f,
+        percentWidth = percentWidth,
         variant = variant
     ),
-    setOf(
-        Behavior.Press(KeyAction.FcitxKeyAction(character)),
-        Behavior.Swipe(KeyAction.FcitxKeyAction(punctuation))
-    ),
+    buildSet {
+        add(Behavior.Press(KeyAction.FcitxKeyAction(character)))
+        if (punctuation.isNotEmpty()) {
+            add(Behavior.Swipe(KeyAction.FcitxKeyAction(punctuation)))
+        }
+    },
     popup ?: arrayOf(
         Popup.AltPreview(character, punctuation),
         Popup.Keyboard.Preset(character)
@@ -157,19 +161,21 @@ class QuickPhraseKey : KeyDef(
 class CommaKey(
     percentWidth: Float,
     variant: Variant,
+    displayText: String = ",",
+    output: String = displayText,
 ) : KeyDef(
     Appearance.ImageText(
-        displayText = ",",
+        displayText = displayText,
         textSize = 23f,
         percentWidth = percentWidth,
         variant = variant,
         src = R.drawable.ic_baseline_tag_faces_24
     ),
     setOf(
-        Behavior.Press(KeyAction.FcitxKeyAction(","))
+        Behavior.Press(KeyAction.FcitxKeyAction(output))
     ),
     arrayOf(
-        Popup.Preview(","),
+        Popup.Preview(displayText),
         Popup.Menu(
             arrayOf(
                 Popup.Menu.Item(
@@ -205,9 +211,12 @@ class LanguageKey(percentWidth: Float = 0.1f) : KeyDef(
     )
 )
 
-class SpaceKey : KeyDef(
+class SpaceKey(
+    label: String = " ",
+    popupItems: Array<String>? = null
+) : KeyDef(
     Appearance.Text(
-        displayText = " ",
+        displayText = label,
         textSize = 13f,
         percentWidth = 0f,
         border = Border.Special,
@@ -217,7 +226,8 @@ class SpaceKey : KeyDef(
     setOf(
         Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_space))),
         Behavior.LongPress(KeyAction.SpaceLongPressAction)
-    )
+    ),
+    popupItems?.let { arrayOf(Popup.Preview(" "), Popup.Keyboard.Explicit(it)) }
 )
 
 class ReturnKey(percentWidth: Float = 0.15f) : KeyDef(

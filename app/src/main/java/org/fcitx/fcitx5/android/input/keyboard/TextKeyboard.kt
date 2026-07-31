@@ -22,57 +22,17 @@ import splitties.views.imageResource
 @SuppressLint("ViewConstructor")
 class TextKeyboard(
     context: Context,
-    theme: Theme
-) : BaseKeyboard(context, theme, Layout) {
+    theme: Theme,
+    val spec: KeyboardLayoutSpec = KeyboardLayoutRegistry.English
+) : BaseKeyboard(context, theme, KeyboardLayoutRegistry.textLayout(spec)) {
 
     enum class CapsState { None, Once, Lock }
 
     companion object {
         const val Name = "Text"
 
-        val Layout: List<List<KeyDef>> = listOf(
-            listOf(
-                AlphabetKey("Q", "1"),
-                AlphabetKey("W", "2"),
-                AlphabetKey("E", "3"),
-                AlphabetKey("R", "4"),
-                AlphabetKey("T", "5"),
-                AlphabetKey("Y", "6"),
-                AlphabetKey("U", "7"),
-                AlphabetKey("I", "8"),
-                AlphabetKey("O", "9"),
-                AlphabetKey("P", "0")
-            ),
-            listOf(
-                AlphabetKey("A", "@"),
-                AlphabetKey("S", "*"),
-                AlphabetKey("D", "+"),
-                AlphabetKey("F", "-"),
-                AlphabetKey("G", "="),
-                AlphabetKey("H", "/"),
-                AlphabetKey("J", "#"),
-                AlphabetKey("K", "("),
-                AlphabetKey("L", ")")
-            ),
-            listOf(
-                CapsKey(),
-                AlphabetKey("Z", "'"),
-                AlphabetKey("X", ":"),
-                AlphabetKey("C", "\""),
-                AlphabetKey("V", "?"),
-                AlphabetKey("B", "!"),
-                AlphabetKey("N", "~"),
-                AlphabetKey("M", "\\"),
-                BackspaceKey()
-            ),
-            listOf(
-                LayoutSwitchKey("?123", ""),
-                CommaKey(0.1f, KeyDef.Appearance.Variant.Alternative),
-                LanguageKey(),
-                SpaceKey(),
-                SymbolKey(".", 0.1f, KeyDef.Appearance.Variant.Alternative),
-                ReturnKey()
-            )
+        val Layout: List<List<KeyDef>> = KeyboardLayoutRegistry.textLayout(
+            KeyboardLayoutRegistry.English
         )
     }
 
@@ -106,7 +66,7 @@ class TextKeyboard(
     private fun transformAlphabet(c: String): String {
         return when (capsState) {
             CapsState.None -> c.lowercase()
-            else -> c.uppercase()
+            else -> spec.shifted[c.uppercase()] ?: c.uppercase()
         }
     }
 
@@ -124,14 +84,14 @@ class TextKeyboard(
                         }
                         CapsState.Once -> {
                             transformed = action.copy(
-                                act = action.act.uppercase(),
+                                act = spec.shifted[action.act.uppercase()] ?: action.act.uppercase(),
                                 states = KeyStates(KeyState.Virtual, KeyState.Shift)
                             )
                             switchCapsState()
                         }
                         CapsState.Lock -> {
                             transformed = action.copy(
-                                act = action.act.uppercase(),
+                                act = spec.shifted[action.act.uppercase()] ?: action.act.uppercase(),
                                 states = KeyStates(KeyState.Virtual, KeyState.CapsLock)
                             )
                         }
@@ -166,7 +126,10 @@ class TextKeyboard(
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
         space.mainText.text = buildString {
-            append(ime.displayName)
+            append(
+                if (KeyboardLayoutRegistry.isRegisteredInputMethod(ime.uniqueName)) spec.spaceLabel
+                else ime.displayName
+            )
             ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
         }
         if (capsState != CapsState.None) {
@@ -194,7 +157,11 @@ class TextKeyboard(
                             )
                         else action
                     }
-                    is KeyDef.Popup.Keyboard.Explicit -> action
+                    is KeyDef.Popup.Keyboard.Explicit -> action.copy(
+                        keyboard = KeyDef.Popup.Keyboard.Explicit(
+                            action.keyboard.items.map { transformPopupPreview(it) }.toTypedArray()
+                        )
+                    )
                 }
             }
             else -> action
@@ -238,7 +205,11 @@ class TextKeyboard(
             if (it.def !is KeyDef.Appearance.AltText) return
             it.mainText.text = it.def.displayText.let { str ->
                 if (str.length != 1 || !str[0].isLetter()) return@forEach
-                if (keepLettersUppercase) str.uppercase() else transformAlphabet(str)
+                if (keepLettersUppercase && spec.shiftedIsCase) {
+                    str.uppercase()
+                } else {
+                    transformAlphabet(str)
+                }
             }
         }
     }

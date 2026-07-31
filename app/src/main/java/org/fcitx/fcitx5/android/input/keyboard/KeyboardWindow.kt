@@ -60,7 +60,8 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
             if (target == TextKeyboard.Name) selectKeyboard(inputClass, ime) else target
 
         internal fun shouldRememberSymbolLayout(target: String) =
-            target != TextKeyboard.Name && target != ChewingKeyboard.Name
+            target != TextKeyboard.Name && target != ChewingKeyboard.Name &&
+                !target.endsWith(" Symbols")
     }
 
     override val key: EssentialWindow.Key
@@ -93,6 +94,19 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
     private var lastSymbolType: String by AppPrefs.getInstance().internal.lastSymbolLayout
 
     private val currentKeyboard: BaseKeyboard? get() = keyboards[currentKeyboardName]
+
+    private fun alphabeticName(ime: InputMethodEntry): String =
+        if (ChewingKeyboard.isChewing(ime)) ChewingKeyboard.Name
+        else KeyboardLayoutRegistry.forInputMethod(ime.uniqueName).name
+
+    private fun ensureLayout(name: String, ime: InputMethodEntry) {
+        if (keyboards.containsKey(name)) return
+        val spec = KeyboardLayoutRegistry.forInputMethod(ime.uniqueName)
+        when (name) {
+            spec.name -> keyboards[name] = TextKeyboard(context, theme, spec)
+            spec.symbolLayoutName -> keyboards[name] = SymbolKeyboard(context, theme, spec)
+        }
+    }
 
     private val keyActionListener = KeyActionListener { it, source ->
         if (it is KeyAction.LayoutSwitchAction) {
@@ -138,11 +152,14 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
         val requested = to.ifEmpty { lastSymbolType }
         // ABC keys in NumberKeyboard and PickerLayout mean "the active alphabetic layout",
         // not specifically QWERTY. This also restores Chewing after either extended layout.
-        val target = resolveTextLayout(
+        val ime = fcitx.runImmediately { inputMethodEntryCached }
+        var target = resolveTextLayout(
             requested,
             inputClass,
-            fcitx.runImmediately { inputMethodEntryCached }
+            ime
         )
+        if (target == TextKeyboard.Name) target = alphabeticName(ime)
+        ensureLayout(target, ime)
         ContextCompat.getMainExecutor(service).execute {
             if (keyboards.containsKey(target)) {
                 if (remember && shouldRememberSymbolLayout(target)) {
@@ -165,12 +182,15 @@ class KeyboardWindow : InputWindow.SimpleInputWindow<KeyboardWindow>(), Essentia
 
     override fun onStartInput(info: EditorInfo, capFlags: CapabilityFlags) {
         inputClass = info.inputType and InputType.TYPE_MASK_CLASS
-        val targetLayout = selectKeyboard(inputClass, fcitx.runImmediately { inputMethodEntryCached })
+        val ime = fcitx.runImmediately { inputMethodEntryCached }
+        val targetLayout = if (selectKeyboard(inputClass, ime) == TextKeyboard.Name)
+            alphabeticName(ime) else selectKeyboard(inputClass, ime)
         switchLayout(targetLayout, remember = false)
     }
 
     override fun onImeUpdate(ime: InputMethodEntry) {
-        val targetLayout = selectKeyboard(inputClass, ime)
+        val selected = selectKeyboard(inputClass, ime)
+        val targetLayout = if (selected == TextKeyboard.Name) alphabeticName(ime) else selected
         if (targetLayout != currentKeyboardName) {
             switchLayout(targetLayout, remember = false)
         } else {

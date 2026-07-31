@@ -12,12 +12,20 @@ import androidx.annotation.RequiresApi
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.inputMethodManager
+import java.util.Locale
 
 object SubtypeManager {
 
     private const val MODE_KEYBOARD = "keyboard"
 
     private const val IM_KEYBOARD = "keyboard-us"
+
+    private val asciiCapableInputMethods = setOf(
+        IM_KEYBOARD,
+        "keyboard-es-419",
+        "keyboard-pt-br",
+        "keyboard-fr-qwerty"
+    )
 
     private val knownSubtypes: HashMap<String, InputMethodSubtype> = hashMapOf()
 
@@ -28,6 +36,12 @@ object SubtypeManager {
     fun inputMethodOf(subtype: InputMethodSubtype): String {
         return subtype.extraValue.ifEmpty { IM_KEYBOARD }
     }
+
+    internal fun isAsciiCapable(inputMethod: String): Boolean =
+        inputMethod in asciiCapableInputMethods
+
+    internal fun languageTag(languageCode: String): String =
+        Locale.forLanguageTag(languageCode.replace('_', '-')).toLanguageTag()
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun syncWith(inputMethods: Array<InputMethodEntry>) {
@@ -41,7 +55,8 @@ object SubtypeManager {
                 .setSubtypeExtraValue(im.uniqueName)
                 .setSubtypeNameOverride(im.displayName)
                 .setSubtypeMode(MODE_KEYBOARD)
-                .setIsAsciiCapable(im.uniqueName == IM_KEYBOARD)
+                .setLanguageTag(languageTag(im.languageCode))
+                .setIsAsciiCapable(isAsciiCapable(im.uniqueName))
                 .build()
             val hashCode = subtype.hashCode()
             subtypes[i] = subtype

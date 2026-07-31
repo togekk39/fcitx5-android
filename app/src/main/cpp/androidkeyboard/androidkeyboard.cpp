@@ -8,6 +8,7 @@
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputpanel.h>
 #include <fcitx/userinterfacemanager.h>
+#include <unordered_set>
 
 #include "spell_public.h"
 #include "../../../../../lib/fcitx5/src/main/cpp/fcitx5/src/im/keyboard/chardata.h" // dirty but works
@@ -66,6 +67,28 @@ static inline bool isValidSym(const Key &key) {
     return validSyms.count(key.sym());
 }
 
+static inline bool isWordLetter(const Key &key) {
+    if (key.isLAZ() || key.isUAZ()) {
+        return true;
+    }
+
+    static const std::unordered_set<std::string> latinLetters = {
+            "á", "Á", "à", "À", "â", "Â", "ä", "Ä", "ã", "Ã",
+            "ç", "Ç", "é", "É", "è", "È", "ê", "Ê", "ë", "Ë",
+            "í", "Í", "î", "Î", "ï", "Ï", "ñ", "Ñ", "ó", "Ó",
+            "ô", "Ô", "ö", "Ö", "õ", "Õ", "œ", "Œ", "ú", "Ú",
+            "ù", "Ù", "û", "Û", "ü", "Ü", "ÿ", "Ÿ",
+    };
+    return latinLetters.count(Key::keySymToUTF8(key.sym()));
+}
+
+static inline bool isInWordPunctuation(const Key &key) {
+    static const KeyList hyphenAndApostrophe = {Key(FcitxKey_minus),
+                                                Key(FcitxKey_apostrophe)};
+    return key.checkKeyList(hyphenAndApostrophe) ||
+           Key::keySymToUTF8(key.sym()) == "’";
+}
+
 void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &event) {
     FCITX_UNUSED(entry);
 
@@ -97,17 +120,16 @@ void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &ev
 
     const bool validSym = isValidSym(key);
 
-    static const KeyList FCITX_HYPHEN_APOS = {Key(FcitxKey_minus), Key(FcitxKey_apostrophe)};
     // check for valid character
     if (key.isSimple() || validSym) {
         // prepend space before input next word
         if (state->prependSpace_ && buffer.empty() &&
-            (key.isLAZ() || key.isUAZ() || key.isDigit())) {
+            (isWordLetter(key) || key.isDigit())) {
             state->prependSpace_ = false;
             inputContext->commitString(" ");
         }
-        if (key.isLAZ() || key.isUAZ() || validSym ||
-            (!buffer.empty() && key.checkKeyList(FCITX_HYPHEN_APOS))) {
+        if (isWordLetter(key) || validSym ||
+            (!buffer.empty() && isInWordPunctuation(key))) {
             if (updateBuffer(inputContext, event)) {
                 return event.filterAndAccept();
             }
@@ -163,11 +185,20 @@ void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &ev
 
 std::vector<InputMethodEntry> AndroidKeyboardEngine::listInputMethods() {
     std::vector<InputMethodEntry> result;
-    result.emplace_back(std::move(
-            InputMethodEntry("keyboard-us", _("English"), "en", "androidkeyboard")
-                    .setLabel("En")
-                    .setIcon("input-keyboard")
-                    .setConfigurable(true)));
+    const std::array<std::array<const char *, 4>, 5> methods{{
+            {{"keyboard-us", N_("English"), "en", "En"}},
+            {{"keyboard-es-419", N_("Español (Latinoamérica)"), "es", "ES"}},
+            {{"keyboard-pt-br", N_("Português (Brasil)"), "pt_BR", "PT"}},
+            {{"keyboard-fr-qwerty", N_("Français (QWERTY)"), "fr", "FR"}},
+            {{"keyboard-fa", N_("فارسی"), "fa", "FA"}},
+    }};
+    for (const auto &method: methods) {
+        result.emplace_back(std::move(
+                InputMethodEntry(method[0], _(method[1]), method[2], "androidkeyboard")
+                        .setLabel(method[3])
+                        .setIcon("input-keyboard")
+                        .setConfigurable(true)));
+    }
     return result;
 }
 
