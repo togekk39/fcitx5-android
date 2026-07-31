@@ -66,6 +66,7 @@ class KeyboardLayoutRegistryTest {
         assertEquals(layout.symbols.first(), layout.numbers)
         assertContains(layout, "،؛؟")
         assertTrue(layout.shifted.isNotEmpty())
+        assertFalse(layout.shiftedIsCase)
     }
 
     @Test
@@ -85,6 +86,7 @@ class KeyboardLayoutRegistryTest {
             KeyboardLayoutRegistry.French
         ).forEach { layout ->
             assertEquals("1234567890", layout.numbers.joinToString(""))
+            assertTrue(layout.shiftedIsCase)
         }
     }
 

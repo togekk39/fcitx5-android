@@ -16,6 +16,7 @@ data class KeyboardLayoutSpec(
     val symbols: List<List<String>>,
     val rtl: Boolean,
     val spaceLabel: String,
+    val shiftedIsCase: Boolean = true,
     val punctuation: Pair<String, String> = "," to "."
 ) {
     val symbolLayoutName = "$name Symbols"
@@ -129,6 +130,7 @@ object KeyboardLayoutRegistry {
         ),
         rtl = true,
         spaceLabel = "فارسی",
+        shiftedIsCase = false,
         punctuation = "،" to "؟"
     )
 
