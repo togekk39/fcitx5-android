@@ -20,6 +20,14 @@ class KeyboardLayoutRegistryTest {
     }
 
     @Test
+    fun identifiesRegistryFallbacks() {
+        assertTrue(KeyboardLayoutRegistry.isRegisteredInputMethod("keyboard-us"))
+        assertTrue(KeyboardLayoutRegistry.isRegisteredInputMethod("keyboard-fa"))
+        assertFalse(KeyboardLayoutRegistry.isRegisteredInputMethod("rime"))
+        assertFalse(KeyboardLayoutRegistry.isRegisteredInputMethod("anthy"))
+    }
+
+    @Test
     fun spanishHasDedicatedEnyeAndRequiredCharacters() {
         val layout = KeyboardLayoutRegistry.Spanish
         assertTrue(layout.rows.flatten().contains("Ñ"))

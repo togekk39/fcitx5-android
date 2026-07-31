@@ -126,7 +126,10 @@ class TextKeyboard(
 
     override fun onInputMethodUpdate(ime: InputMethodEntry) {
         space.mainText.text = buildString {
-            append(spec.spaceLabel)
+            append(
+                if (KeyboardLayoutRegistry.isRegisteredInputMethod(ime.uniqueName)) spec.spaceLabel
+                else ime.displayName
+            )
             ime.subMode.run { label.ifEmpty { name.ifEmpty { null } } }?.let { append(" ($it)") }
         }
         if (capsState != CapsState.None) {

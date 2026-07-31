@@ -139,6 +139,8 @@ object KeyboardLayoutRegistry {
         "keyboard-fa" to Persian
     )
 
+    fun isRegisteredInputMethod(uniqueName: String) = byInputMethod.containsKey(uniqueName)
+
     fun forInputMethod(uniqueName: String) = byInputMethod[uniqueName] ?: English
 
     fun textLayout(spec: KeyboardLayoutSpec): List<List<KeyDef>> {
