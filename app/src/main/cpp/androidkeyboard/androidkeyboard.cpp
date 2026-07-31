@@ -8,6 +8,7 @@
 #include <fcitx/candidatelist.h>
 #include <fcitx/inputpanel.h>
 #include <fcitx/userinterfacemanager.h>
+#include <unordered_set>
 
 #include "spell_public.h"
 #include "../../../../../lib/fcitx5/src/main/cpp/fcitx5/src/im/keyboard/chardata.h" // dirty but works
@@ -66,6 +67,21 @@ static inline bool isValidSym(const Key &key) {
     return validSyms.count(key.sym());
 }
 
+static inline bool isWordLetter(const Key &key) {
+    if (key.isLAZ() || key.isUAZ()) {
+        return true;
+    }
+
+    static const std::unordered_set<std::string> latinLetters = {
+            "á", "Á", "à", "À", "â", "Â", "ä", "Ä", "ã", "Ã",
+            "ç", "Ç", "é", "É", "è", "È", "ê", "Ê", "ë", "Ë",
+            "í", "Í", "î", "Î", "ï", "Ï", "ñ", "Ñ", "ó", "Ó",
+            "ô", "Ô", "ö", "Ö", "õ", "Õ", "œ", "Œ", "ú", "Ú",
+            "ù", "Ù", "û", "Û", "ü", "Ü", "ÿ", "Ÿ",
+    };
+    return latinLetters.count(Key::keySymToUTF8(key.sym()));
+}
+
 void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &event) {
     FCITX_UNUSED(entry);
 
@@ -102,11 +118,11 @@ void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &ev
     if (key.isSimple() || validSym) {
         // prepend space before input next word
         if (state->prependSpace_ && buffer.empty() &&
-            (key.isLAZ() || key.isUAZ() || key.isDigit())) {
+            (isWordLetter(key) || key.isDigit())) {
             state->prependSpace_ = false;
             inputContext->commitString(" ");
         }
-        if (key.isLAZ() || key.isUAZ() || validSym ||
+        if (isWordLetter(key) || validSym ||
             (!buffer.empty() && key.checkKeyList(FCITX_HYPHEN_APOS))) {
             if (updateBuffer(inputContext, event)) {
                 return event.filterAndAccept();
