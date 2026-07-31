@@ -4,6 +4,7 @@
  */
 package org.fcitx.fcitx5.android.input.keyboard
 
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -134,6 +135,22 @@ class KeyboardLayoutRegistryTest {
 
             assertTrue(row.last() is BackspaceKey)
             assertEquals(1f, row.sumOf { it.appearance.percentWidth.toDouble() }.toFloat(), 0.0001f)
+        }
+    }
+
+    @Test
+    fun compactSymbolLayoutsLinkToTheFullSymbolPicker() {
+        listOf(
+            KeyboardLayoutRegistry.English,
+            KeyboardLayoutRegistry.Spanish,
+            KeyboardLayoutRegistry.Portuguese,
+            KeyboardLayoutRegistry.French,
+            KeyboardLayoutRegistry.Persian
+        ).forEach { layout ->
+            val switches = KeyboardLayoutRegistry.symbolLayout(layout).last()
+                .filterIsInstance<LayoutSwitchKey>()
+
+            assertTrue(switches.any { it.to == PickerWindow.Key.Symbol.name })
         }
     }
 

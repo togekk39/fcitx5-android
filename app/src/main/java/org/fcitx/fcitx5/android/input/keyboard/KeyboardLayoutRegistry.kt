@@ -5,6 +5,7 @@
 package org.fcitx.fcitx5.android.input.keyboard
 
 import org.fcitx.fcitx5.android.input.keyboard.KeyDef.Appearance.Variant
+import org.fcitx.fcitx5.android.input.picker.PickerWindow
 
 data class KeyboardLayoutSpec(
     val name: String,
@@ -189,6 +190,7 @@ object KeyboardLayoutRegistry {
         } + listOf(
             listOf(
                 LayoutSwitchKey("ABC", TextKeyboard.Name), LanguageKey(),
+                LayoutSwitchKey("!?#", PickerWindow.Key.Symbol.name),
                 SpaceKey(spec.spaceLabel, spec.popups[" "]), ReturnKey()
             )
         )
