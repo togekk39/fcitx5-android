@@ -19,6 +19,13 @@ object SubtypeManager {
 
     private const val IM_KEYBOARD = "keyboard-us"
 
+    private val asciiCapableInputMethods = setOf(
+        IM_KEYBOARD,
+        "keyboard-es-419",
+        "keyboard-pt-br",
+        "keyboard-fr-qwerty"
+    )
+
     private val knownSubtypes: HashMap<String, InputMethodSubtype> = hashMapOf()
 
     fun subtypeOf(inputMethod: String): InputMethodSubtype? {
@@ -28,6 +35,9 @@ object SubtypeManager {
     fun inputMethodOf(subtype: InputMethodSubtype): String {
         return subtype.extraValue.ifEmpty { IM_KEYBOARD }
     }
+
+    internal fun isAsciiCapable(inputMethod: String): Boolean =
+        inputMethod in asciiCapableInputMethods
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun syncWith(inputMethods: Array<InputMethodEntry>) {
@@ -41,7 +51,7 @@ object SubtypeManager {
                 .setSubtypeExtraValue(im.uniqueName)
                 .setSubtypeNameOverride(im.displayName)
                 .setSubtypeMode(MODE_KEYBOARD)
-                .setIsAsciiCapable(im.uniqueName == IM_KEYBOARD)
+                .setIsAsciiCapable(isAsciiCapable(im.uniqueName))
                 .build()
             val hashCode = subtype.hashCode()
             subtypes[i] = subtype
