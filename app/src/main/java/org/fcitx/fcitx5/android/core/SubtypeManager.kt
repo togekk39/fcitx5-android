@@ -12,6 +12,7 @@ import androidx.annotation.RequiresApi
 import org.fcitx.fcitx5.android.utils.InputMethodUtil
 import org.fcitx.fcitx5.android.utils.appContext
 import org.fcitx.fcitx5.android.utils.inputMethodManager
+import java.util.Locale
 
 object SubtypeManager {
 
@@ -39,6 +40,9 @@ object SubtypeManager {
     internal fun isAsciiCapable(inputMethod: String): Boolean =
         inputMethod in asciiCapableInputMethods
 
+    internal fun languageTag(languageCode: String): String =
+        Locale.forLanguageTag(languageCode.replace('_', '-')).toLanguageTag()
+
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     fun syncWith(inputMethods: Array<InputMethodEntry>) {
         knownSubtypes.clear()
@@ -51,6 +55,7 @@ object SubtypeManager {
                 .setSubtypeExtraValue(im.uniqueName)
                 .setSubtypeNameOverride(im.displayName)
                 .setSubtypeMode(MODE_KEYBOARD)
+                .setLanguageTag(languageTag(im.languageCode))
                 .setIsAsciiCapable(isAsciiCapable(im.uniqueName))
                 .build()
             val hashCode = subtype.hashCode()

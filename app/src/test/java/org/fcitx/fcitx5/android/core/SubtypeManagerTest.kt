@@ -5,6 +5,7 @@
 
 package org.fcitx.fcitx5.android.core
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,5 +24,14 @@ class SubtypeManagerTest {
     fun `Persian and non-keyboard subtypes are not ASCII capable`() {
         assertFalse(SubtypeManager.isAsciiCapable("keyboard-fa"))
         assertFalse(SubtypeManager.isAsciiCapable("rime"))
+    }
+
+    @Test
+    fun `language codes are normalized as BCP 47 tags`() {
+        assertEquals("en", SubtypeManager.languageTag("en"))
+        assertEquals("es-419", SubtypeManager.languageTag("es_419"))
+        assertEquals("pt-BR", SubtypeManager.languageTag("pt_BR"))
+        assertEquals("fr", SubtypeManager.languageTag("fr"))
+        assertEquals("fa", SubtypeManager.languageTag("fa"))
     }
 }
