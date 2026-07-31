@@ -177,6 +177,22 @@ class KeyboardLayoutRegistryTest {
         }
     }
 
+    @Test
+    fun generatedSpaceKeysPreserveConfiguredLongPressBehavior() {
+        val layouts = listOf(
+            KeyboardLayoutRegistry.textLayout(KeyboardLayoutRegistry.Persian),
+            KeyboardLayoutRegistry.symbolLayout(KeyboardLayoutRegistry.Persian)
+        )
+
+        layouts.forEach { rows ->
+            val space = rows.flatten().single {
+                it.appearance.viewId == org.fcitx.fcitx5.android.R.id.button_space
+            }
+            assertTrue(space.behaviors.any { it is KeyDef.Behavior.LongPress })
+            assertFalse(space.popup.orEmpty().any { it is KeyDef.Popup.Keyboard })
+        }
+    }
+
     private fun assertContains(layout: KeyboardLayoutSpec, expected: String) {
         val available = buildString {
             append(layout.rows.flatten().joinToString("").lowercase())

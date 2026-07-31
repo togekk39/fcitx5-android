@@ -167,7 +167,7 @@ object KeyboardLayoutRegistry {
                 variant = Variant.Alternative,
                 displayText = spec.punctuation.first
             ),
-            LanguageKey(), SpaceKey(spec.spaceLabel, spec.popups[" "]),
+            LanguageKey(), SpaceKey(spec.spaceLabel),
             layoutKey(spec.punctuation.second, "", spec.popups[spec.punctuation.second]), ReturnKey()
         )
         return rows.inLayoutDirection(spec)
@@ -193,7 +193,7 @@ object KeyboardLayoutRegistry {
             listOf(
                 LayoutSwitchKey("ABC", TextKeyboard.Name), LanguageKey(),
                 LayoutSwitchKey("!?#", PickerWindow.Key.Symbol.name),
-                SpaceKey(spec.spaceLabel, spec.popups[" "]), ReturnKey()
+                SpaceKey(spec.spaceLabel), ReturnKey()
             )
         )).inLayoutDirection(spec)
 
