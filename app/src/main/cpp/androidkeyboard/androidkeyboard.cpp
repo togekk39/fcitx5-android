@@ -163,11 +163,20 @@ void AndroidKeyboardEngine::keyEvent(const InputMethodEntry &entry, KeyEvent &ev
 
 std::vector<InputMethodEntry> AndroidKeyboardEngine::listInputMethods() {
     std::vector<InputMethodEntry> result;
-    result.emplace_back(std::move(
-            InputMethodEntry("keyboard-us", _("English"), "en", "androidkeyboard")
-                    .setLabel("En")
-                    .setIcon("input-keyboard")
-                    .setConfigurable(true)));
+    const std::array<std::array<const char *, 4>, 5> methods{{
+            {{"keyboard-us", N_("English"), "en", "En"}},
+            {{"keyboard-es-419", N_("Español (Latinoamérica)"), "es", "ES"}},
+            {{"keyboard-pt-br", N_("Português (Brasil)"), "pt_BR", "PT"}},
+            {{"keyboard-fr-qwerty", N_("Français (QWERTY)"), "fr", "FR"}},
+            {{"keyboard-fa", N_("فارسی"), "fa", "FA"}},
+    }};
+    for (const auto &method: methods) {
+        result.emplace_back(std::move(
+                InputMethodEntry(method[0], _(method[1]), method[2], "androidkeyboard")
+                        .setLabel(method[3])
+                        .setIcon("input-keyboard")
+                        .setConfigurable(true)));
+    }
     return result;
 }
 

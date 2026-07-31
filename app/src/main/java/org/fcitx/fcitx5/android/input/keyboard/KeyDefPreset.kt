@@ -43,12 +43,14 @@ class AlphabetKey(
     val character: String,
     val punctuation: String,
     variant: Variant = Variant.Normal,
+    percentWidth: Float = 0.1f,
     popup: Array<Popup>? = null
 ) : KeyDef(
     Appearance.AltText(
         displayText = character,
         altText = punctuation,
         textSize = 23f,
+        percentWidth = percentWidth,
         variant = variant
     ),
     setOf(
@@ -205,9 +207,12 @@ class LanguageKey(percentWidth: Float = 0.1f) : KeyDef(
     )
 )
 
-class SpaceKey : KeyDef(
+class SpaceKey(
+    label: String = " ",
+    popupItems: Array<String>? = null
+) : KeyDef(
     Appearance.Text(
-        displayText = " ",
+        displayText = label,
         textSize = 13f,
         percentWidth = 0f,
         border = Border.Special,
@@ -217,7 +222,8 @@ class SpaceKey : KeyDef(
     setOf(
         Behavior.Press(KeyAction.SymAction(KeySym(FcitxKeyMapping.FcitxKey_space))),
         Behavior.LongPress(KeyAction.SpaceLongPressAction)
-    )
+    ),
+    popupItems?.let { arrayOf(Popup.Preview(" "), Popup.Keyboard.Explicit(it)) }
 )
 
 class ReturnKey(percentWidth: Float = 0.15f) : KeyDef(
