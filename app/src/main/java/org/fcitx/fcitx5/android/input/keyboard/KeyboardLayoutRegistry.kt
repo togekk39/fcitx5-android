@@ -121,7 +121,7 @@ object KeyboardLayoutRegistry {
             "۶" to arrayOf("6"), "۷" to arrayOf("7"), "۸" to arrayOf("8"),
             "۹" to arrayOf("9")
         ),
-        numbers = listOf("۰", "۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹"),
+        numbers = listOf("۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۰"),
         symbols = listOf(
             listOf("۱", "۲", "۳", "۴", "۵", "۶", "۷", "۸", "۹", "۰"),
             listOf("@", "#", "٪", "&", "-", "+", "(", ")"),

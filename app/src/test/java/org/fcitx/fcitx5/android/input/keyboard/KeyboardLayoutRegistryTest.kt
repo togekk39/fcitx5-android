@@ -62,7 +62,8 @@ class KeyboardLayoutRegistryTest {
         assertFalse(primary.contains('\u064a'))
         assertFalse(primary.contains('\u0643'))
         assertTrue(layout.popups[" "]!!.contains("\u200c"))
-        assertEquals("۰۱۲۳۴۵۶۷۸۹", layout.numbers.joinToString(""))
+        assertEquals("۱۲۳۴۵۶۷۸۹۰", layout.numbers.joinToString(""))
+        assertEquals(layout.symbols.first(), layout.numbers)
         assertContains(layout, "،؛؟")
         assertTrue(layout.shifted.isNotEmpty())
     }
