@@ -89,8 +89,7 @@ class ChewingKeyboard(context: Context, theme: Theme) : BaseKeyboard(context, th
                 LanguageKey(percentWidth = BottomKeyWidth),
                 SpaceKey(),
                 punctuationKey("。"),
-                // After moving the preedit cursor with a space-bar swipe, explicitly
-                // request candidates for the syllable at the new cursor position.
+                // Reopen candidates after a space-bar swipe moves the preedit cursor.
                 candidateKey(),
                 BackspaceKey(percentWidth = BottomKeyWidth),
                 ReturnKey(percentWidth = WideBottomKeyWidth)

@@ -14,6 +14,14 @@ class PickerDataTest {
         val (category, symbols) = PickerData.Symbol.first()
 
         assertEquals("[全]", category.label)
+        assertEquals(
+            listOf(
+                "，", "。", "、", "？", "！", "：", "；", "…", "—", "·",
+                "「", "」", "『", "』", "（", "）", "〈", "〉", "《", "》",
+                "【", "】", "“", "”", "‘", "’", "．", "／"
+            ),
+            symbols.take(PickerPageUi.Density.High.pageSize)
+        )
         assertTrue(
             symbols.toSet().containsAll(
                 setOf(
