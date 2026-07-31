@@ -64,7 +64,18 @@ class KeyboardLayoutRegistryTest {
             .map(KeyboardLayoutRegistry::forInputMethod)
         assertEquals(listOf(false, true, false, false, false), sequence.map { it.rtl })
         assertEquals("English QWERTY", sequence.last().name)
-        assertEquals("0123456789", sequence.last().numbers.joinToString(""))
+    }
+
+    @Test
+    fun latinNumberSwipeLayersUseOneThroughZeroOrder() {
+        listOf(
+            KeyboardLayoutRegistry.English,
+            KeyboardLayoutRegistry.Spanish,
+            KeyboardLayoutRegistry.Portuguese,
+            KeyboardLayoutRegistry.French
+        ).forEach { layout ->
+            assertEquals("1234567890", layout.numbers.joinToString(""))
+        }
     }
 
     @Test

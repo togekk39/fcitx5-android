@@ -38,7 +38,7 @@ object KeyboardLayoutRegistry {
         shifted = (('A'..'Z').associate { it.toString() to it.toString() }) +
             secondRow.associateWith { it.uppercase() },
         popups = popups,
-        numbers = (0..9).map(Int::toString),
+        numbers = (1..9).map(Int::toString) + "0",
         symbols = symbols,
         rtl = false,
         spaceLabel = spaceLabel
