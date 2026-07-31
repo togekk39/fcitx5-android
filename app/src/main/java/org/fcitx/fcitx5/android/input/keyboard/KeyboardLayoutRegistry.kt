@@ -147,7 +147,7 @@ object KeyboardLayoutRegistry {
     fun forInputMethod(uniqueName: String) = byInputMethod[uniqueName] ?: English
 
     fun textLayout(spec: KeyboardLayoutSpec): List<List<KeyDef>> {
-        val rows = spec.rows.mapIndexed { rowIndex, row ->
+        val rows: MutableList<List<KeyDef>> = spec.rows.mapIndexed { rowIndex, row ->
             val letterWidth =
                 if (rowIndex == spec.rows.lastIndex) 0.7f / row.size else 1f / row.size
             val keys = row.mapIndexed { index, character ->
