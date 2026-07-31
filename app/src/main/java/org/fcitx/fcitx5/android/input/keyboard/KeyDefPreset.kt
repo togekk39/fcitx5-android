@@ -53,10 +53,12 @@ class AlphabetKey(
         percentWidth = percentWidth,
         variant = variant
     ),
-    setOf(
-        Behavior.Press(KeyAction.FcitxKeyAction(character)),
-        Behavior.Swipe(KeyAction.FcitxKeyAction(punctuation))
-    ),
+    buildSet {
+        add(Behavior.Press(KeyAction.FcitxKeyAction(character)))
+        if (punctuation.isNotEmpty()) {
+            add(Behavior.Swipe(KeyAction.FcitxKeyAction(punctuation)))
+        }
+    },
     popup ?: arrayOf(
         Popup.AltPreview(character, punctuation),
         Popup.Keyboard.Preset(character)

@@ -143,9 +143,11 @@ object KeyboardLayoutRegistry {
 
     fun textLayout(spec: KeyboardLayoutSpec): List<List<KeyDef>> {
         val rows = spec.rows.mapIndexed { rowIndex, row ->
+            val letterWidth =
+                if (rowIndex == spec.rows.lastIndex) 0.7f / row.size else 1f / row.size
             val keys = row.mapIndexed { index, character ->
                 val alt = if (rowIndex == 0) spec.numbers.getOrNull(index).orEmpty() else ""
-                layoutKey(character, alt, spec.popups[character.uppercase()], 1f / row.size)
+                layoutKey(character, alt, spec.popups[character.uppercase()], letterWidth)
             }.toMutableList<KeyDef>()
             if (rowIndex == spec.rows.lastIndex) {
                 keys.add(0, CapsKey())
@@ -188,7 +190,8 @@ object KeyboardLayoutRegistry {
         AlphabetKey(
             character, alt, percentWidth = percentWidth,
             popup = arrayOf(
-                KeyDef.Popup.AltPreview(character, alt),
+                if (alt.isEmpty()) KeyDef.Popup.Preview(character)
+                else KeyDef.Popup.AltPreview(character, alt),
                 popup?.let { KeyDef.Popup.Keyboard.Explicit(it) }
                     ?: KeyDef.Popup.Keyboard.Preset(character)
             )

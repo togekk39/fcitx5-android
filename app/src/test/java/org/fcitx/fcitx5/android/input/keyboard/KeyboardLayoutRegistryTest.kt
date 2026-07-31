@@ -67,6 +67,26 @@ class KeyboardLayoutRegistryTest {
         assertEquals("0123456789", sequence.last().numbers.joinToString(""))
     }
 
+    @Test
+    fun alphabetRowsWithoutAlternativesDoNotCreateSwipeActions() {
+        val rows = KeyboardLayoutRegistry.textLayout(KeyboardLayoutRegistry.English)
+
+        rows.drop(1).take(2).flatten().filterIsInstance<AlphabetKey>().forEach { key ->
+            assertTrue(key.punctuation.isEmpty())
+            assertFalse(key.behaviors.any { it is KeyDef.Behavior.Swipe })
+        }
+    }
+
+    @Test
+    fun lastAlphabeticRowReservesWidthForCapsAndBackspace() {
+        val row = KeyboardLayoutRegistry.textLayout(KeyboardLayoutRegistry.English)[2]
+
+        val totalWidth = row.sumOf { it.appearance.percentWidth.toDouble() }.toFloat()
+        assertEquals(1f, totalWidth, 0.0001f)
+        assertEquals(0.15f, row.first().appearance.percentWidth, 0f)
+        assertEquals(0.15f, row.last().appearance.percentWidth, 0f)
+    }
+
     private fun assertContains(layout: KeyboardLayoutSpec, expected: String) {
         val available = buildString {
             append(layout.rows.flatten().joinToString("").lowercase())
