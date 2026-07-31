@@ -121,6 +121,22 @@ class KeyboardLayoutRegistryTest {
         }
     }
 
+    @Test
+    fun symbolLayoutsKeepBackspaceOnTheLastSymbolRow() {
+        listOf(
+            KeyboardLayoutRegistry.English,
+            KeyboardLayoutRegistry.Spanish,
+            KeyboardLayoutRegistry.Portuguese,
+            KeyboardLayoutRegistry.French,
+            KeyboardLayoutRegistry.Persian
+        ).forEach { layout ->
+            val row = KeyboardLayoutRegistry.symbolLayout(layout)[layout.symbols.lastIndex]
+
+            assertTrue(row.last() is BackspaceKey)
+            assertEquals(1f, row.sumOf { it.appearance.percentWidth.toDouble() }.toFloat(), 0.0001f)
+        }
+    }
+
     private fun assertContains(layout: KeyboardLayoutSpec, expected: String) {
         val available = buildString {
             append(layout.rows.flatten().joinToString("").lowercase())

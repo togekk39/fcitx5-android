@@ -171,15 +171,21 @@ object KeyboardLayoutRegistry {
     }
 
     fun symbolLayout(spec: KeyboardLayoutSpec): List<List<KeyDef>> =
-        spec.symbols.map { row ->
+        spec.symbols.mapIndexed { rowIndex, row ->
+            val symbolWidth =
+                if (rowIndex == spec.symbols.lastIndex) 0.85f / row.size else 0.1f
             row.map { value ->
                 val output = if (value == "نیم‌فاصله") "\u200C" else value
                 val popup = spec.popups[value]?.let { KeyDef.Popup.Keyboard.Explicit(it) }
                     ?: KeyDef.Popup.Keyboard.Preset(value)
-                SymbolKey(output, popup = arrayOf(KeyDef.Popup.Preview(value), popup)).let { key ->
-                    if (output == value) key else LabeledSymbolKey(value, output)
+                SymbolKey(
+                    output,
+                    percentWidth = symbolWidth,
+                    popup = arrayOf(KeyDef.Popup.Preview(value), popup)
+                ).let { key ->
+                    if (output == value) key else LabeledSymbolKey(value, output, symbolWidth)
                 }
-            }
+            } + if (rowIndex == spec.symbols.lastIndex) listOf(BackspaceKey()) else emptyList()
         } + listOf(
             listOf(
                 LayoutSwitchKey("ABC", TextKeyboard.Name), LanguageKey(),
@@ -204,8 +210,8 @@ object KeyboardLayoutRegistry {
         )
 }
 
-class LabeledSymbolKey(label: String, output: String) : KeyDef(
-    KeyDef.Appearance.Text(label, 16f, variant = Variant.Normal),
+class LabeledSymbolKey(label: String, output: String, percentWidth: Float = 0.1f) : KeyDef(
+    KeyDef.Appearance.Text(label, 16f, percentWidth = percentWidth, variant = Variant.Normal),
     setOf(KeyDef.Behavior.Press(KeyAction.FcitxKeyAction(output))),
     arrayOf(KeyDef.Popup.Preview(label))
 )
