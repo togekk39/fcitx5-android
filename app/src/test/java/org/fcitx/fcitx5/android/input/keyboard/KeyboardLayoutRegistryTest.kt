@@ -78,6 +78,26 @@ class KeyboardLayoutRegistryTest {
     }
 
     @Test
+    fun generatedRowsFollowEachLayoutsDirection() {
+        val persianText = KeyboardLayoutRegistry.textLayout(KeyboardLayoutRegistry.Persian)
+        val persianSymbols = KeyboardLayoutRegistry.symbolLayout(KeyboardLayoutRegistry.Persian)
+        val englishText = KeyboardLayoutRegistry.textLayout(KeyboardLayoutRegistry.English)
+
+        assertEquals(
+            KeyboardLayoutRegistry.Persian.rows.first().reversed(),
+            persianText.first().filterIsInstance<AlphabetKey>().map(AlphabetKey::character)
+        )
+        assertEquals(
+            KeyboardLayoutRegistry.Persian.symbols.first().reversed(),
+            persianSymbols.first().filterIsInstance<SymbolKey>().map(SymbolKey::symbol)
+        )
+        assertEquals(
+            KeyboardLayoutRegistry.English.rows.first(),
+            englishText.first().filterIsInstance<AlphabetKey>().map(AlphabetKey::character)
+        )
+    }
+
+    @Test
     fun latinNumberSwipeLayersUseOneThroughZeroOrder() {
         listOf(
             KeyboardLayoutRegistry.English,

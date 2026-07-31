@@ -170,11 +170,11 @@ object KeyboardLayoutRegistry {
             LanguageKey(), SpaceKey(spec.spaceLabel, spec.popups[" "]),
             layoutKey(spec.punctuation.second, "", spec.popups[spec.punctuation.second]), ReturnKey()
         )
-        return rows
+        return rows.inLayoutDirection(spec)
     }
 
     fun symbolLayout(spec: KeyboardLayoutSpec): List<List<KeyDef>> =
-        spec.symbols.mapIndexed { rowIndex, row ->
+        (spec.symbols.mapIndexed { rowIndex, row ->
             val symbolWidth =
                 if (rowIndex == spec.symbols.lastIndex) 0.85f / row.size else 0.1f
             row.map { value ->
@@ -195,7 +195,10 @@ object KeyboardLayoutRegistry {
                 LayoutSwitchKey("!?#", PickerWindow.Key.Symbol.name),
                 SpaceKey(spec.spaceLabel, spec.popups[" "]), ReturnKey()
             )
-        )
+        )).inLayoutDirection(spec)
+
+    private fun List<List<KeyDef>>.inLayoutDirection(spec: KeyboardLayoutSpec) =
+        if (spec.rtl) map(List<KeyDef>::reversed) else this
 
     private fun layoutKey(
         character: String,
